@@ -4,24 +4,24 @@ using Steeltoe.CircuitBreaker.Hystrix;
 
 namespace Backlog
 {
-    public class GetProjectCommand : HystrixCommand<ProjectInfo>
+    public class GetProjectCommand<T>: HystrixCommand<T>
     {
-        private readonly Func<long, Task<ProjectInfo>> _getProjectFn;
-        private readonly long _projectId;
-        private readonly Func<long, Task<ProjectInfo>> _getProjectFallbackFn;
+        private readonly Func<long, Task<T>> _fn;
+        private readonly long _Id;
+        private readonly Func<long, Task<T>> _fallbackFn;
 
         public GetProjectCommand(
-            Func<long, Task<ProjectInfo>> getProjectFn,
-            Func<long, Task<ProjectInfo>> getProjectFallbackFn,
-            long projectId
-        ) : base(HystrixCommandGroupKeyDefault.AsKey("ProjectClientGroup"))
+            Func<long, Task<T>> fn,
+            Func<long, Task<T>> fallbackFn,
+            long id
+        ) : base(HystrixCommandGroupKeyDefault.AsKey(typeof(T).ToString()))
         {
-            _getProjectFn = getProjectFn;
-            _projectId = projectId;
-            _getProjectFallbackFn = getProjectFallbackFn;
+            _fn = fn;
+            _Id = id;
+            _fallbackFn = fallbackFn;
         }
 
-        protected override async Task<ProjectInfo> RunAsync() => await _getProjectFn(_projectId);
-        protected override async Task<ProjectInfo> RunFallbackAsync() => await _getProjectFallbackFn(_projectId);
+        protected override async Task<T> RunAsync() => await _fn(_Id);
+        protected override async Task<T> RunFallbackAsync() => await _fallbackFn(_Id);
     }
 }
