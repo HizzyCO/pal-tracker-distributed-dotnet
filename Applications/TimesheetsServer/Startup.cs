@@ -9,6 +9,7 @@ using Steeltoe.CloudFoundry.Connector.MySql.EFCore;
 using Timesheets;
 using Pivotal.Discovery.Client;
 using Steeltoe.Common.Discovery;
+using Steeltoe.CircuitBreaker.Hystrix;
 
 namespace TimesheetsServer
 {
@@ -29,7 +30,7 @@ namespace TimesheetsServer
 
             services.AddDbContext<TimeEntryContext>(options => options.UseMySql(Configuration));
             services.AddScoped<ITimeEntryDataGateway, TimeEntryDataGateway>();
-            
+
             services.AddSingleton<IProjectClient>(sp =>
             {
                 var handler = new DiscoveryHttpClientHandler(sp.GetService<IDiscoveryClient>());
@@ -38,8 +39,11 @@ namespace TimesheetsServer
                     BaseAddress = new Uri(Configuration.GetValue<string>("REGISTRATION_SERVER_ENDPOINT"))
                 };
 
-                return new ProjectClient(httpClient);
+                var logger = sp.GetService<ILogger<ProjectClient>>();
+                return new ProjectClient(httpClient, logger);
             });
+
+            services.AddHystrixMetricsStream(Configuration);
             services.AddDiscoveryClient(Configuration);
         }
 
@@ -51,6 +55,8 @@ namespace TimesheetsServer
 
             app.UseMvc();
             app.UseDiscoveryClient();
+            app.UseHystrixMetricsStream();
+            app.UseHystrixRequestContext();
         }
     }
 }
